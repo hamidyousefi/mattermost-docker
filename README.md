@@ -1,4 +1,4 @@
-# Dockerized Mattermost Server Team Edition
+# Dockerized Mattermost Server
 
 If you visit [Deploy Mattermost on Docker](https://docs.mattermost.com/install/prod-docker.html)
 you would see they didn't produce reliable and official solution for it and the community created 
@@ -9,35 +9,60 @@ won't build it there. This deployment will only because I want to keep this
 guide as simple as possible without concerns of creating
 networks and connection containers manually.
 
-## Database
-You have two main choice when it is about the database you want to use for Mattermost. For know, I am only
-maintained this image for using with PostgreSQL!
+## Configuration Settings
+Based on [Configuration Settings](https://docs.mattermost.com/administration/config-settings.html)
+You can rewrite default settings by environment variables:
+1. Find the setting in `config.json`. In this case, ServiceSettings.SiteURL.
+2. Add `MM_` to the beginning and convert all characters to uppercase and replace the `.` with `_`.
+For example, `MM_SERVICESETTINGS_SITEURL`.
 
-You only need to set related environment variables. You can see the list in next section.
+### Database
+You have two main choice when it is about the database you want to use for Mattermost.
+You only need to set below environment variables.
+#### PostgreSQL
+```yaml
+environment:
+  MM_SQLSETTINGS_DRIVERNAME: postgres
+  MM_SQLSETTINGS_DATASOURCE: postgres://mattermost:password@mattermost.db:5432/mattermost?sslmode=disable&connect_timeout=10
+```
+#### MySQL (MariaDB)
+```yaml
+environment:
+  MM_SQLSETTINGS_DRIVERNAME: mysql
+  MM_SQLSETTINGS_DATASOURCE: mattermost:password@tcp(mattermost.db:3306)/mattermost?charset=utf8mb4,utf8&readTimeout=30s&writeTimeout=30s
+```
+## Sample Docker Compose YAML File
+```yaml
+version: "3.7"
 
-## Environment Variables
-### `DB_DRIVER`:
-*Default*: `postgres`
+services:
+  mattermost.app:
+    image: hamidyousefi/mattermost:5.22.1-rev1
+    container_name: mattermost.app
+    hostname: mattermost.app
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mattermost:password@mattermost.db:5432/mattermost?sslmode=disable&connect_timeout=10
+    ports:
+      - 127.0.0.1:8065:8065
+    depends_on:
+      - mattermost.db
+    restart: on-failure
 
-It is only accessible option for know. I will try to add mysql to supported list as soon as I can.
+  mattermost.db:
+    image: postgres:12.2-alpine
+    container_name: mattermost.db
+    hostname: mattermost.db
+    environment:
+      POSTGRES_DB: mattermost
+      POSTGRES_USER: mattermost
+      POSTGRES_PASSWORD: password
+    volumes:
+      - /mnt/mattermost/db:/var/lib/postgresql/data
+    restart: on-failure
 
-### `DB_HOSTNAME`:
-*Default*: `mattermost.db`
-
-You may choose this one by your own decision. Personally I prefer to keep all the containers names and
-hostnames in the way I can find it without any unnecessary complexity, therefore I suggest this pattern.
-
-### `DB_PORT`:
-*Default*: `5432`
-PostgreSQL default port. I prefer to keep it that way.
-
-### `DB_NAME`:
-*Default*: `mattermost`
-
-### `DB_USERNAME`:
-*Default*: `mattermost`
-
-### `DB_PASSWORD`:
-*Default*: `mattermost`
-
-It is better to change this value to something more complex.
+networks:
+  default:
+    name: mattermost
+    driver: bridge
+```
