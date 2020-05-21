@@ -1,6 +1,6 @@
 FROM    debian:10.3-slim
 LABEL   maintainer="Hamid Yousefi <contact@hamidyousefi.com>"
-ARG     MATTERMOST_VERSION=5.22.1
+ARG     MATTERMOST_VERSION=5.23.0
 ENV     MATTERMOST_FILENAME=mattermost-team-${MATTERMOST_VERSION}-linux-amd64.tar.gz \
         DB_DRIVER=postgres \
         DB_HOSTNAME=mattermost.db \
